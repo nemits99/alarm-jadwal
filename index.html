@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pengingat Jadwal</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    h1 { color: #333; }
+    form { margin-bottom: 20px; }
+    table { width: 100%; border-collapse: collapse; }
+    table, th, td { border: 1px solid #ccc; }
+    th, td { padding: 8px; text-align: left; }
+    th { background-color: #f4f4f4; }
+  </style>
+</head>
+<body>
+  <h1>Pengingat Jadwal</h1>
+  <h1>Anda sedang offline</h1>
+  <p>Silakan coba lagi nanti.</p>
+  <!-- Form untuk Menambahkan Jadwal -->
+  <form id="scheduleForm">
+    <label>
+      Hari:
+      <select id="day">
+        <option value="Monday">Senin</option>
+        <option value="Tuesday">Selasa</option>
+        <option value="Wednesday">Rabu</option>
+        <option value="Thursday">Kamis</option>
+        <option value="Friday">Jumat</option>
+        <option value="Saturday">Sabtu</option>
+        <option value="Sunday">Minggu</option>
+      </select>
+    </label>
+    <label>
+      Waktu (HH:MM):
+      <input type="time" id="time" required>
+    </label>
+    <label>
+      Pesan:
+      <input type="text" id="message" required>
+    </label>
+    <button type="submit">Tambahkan Jadwal</button>
+  </form>
+  
+  <!-- Tabel Jadwal -->
+  <h2>Jadwal</h2>
+  <table id="scheduleTable">
+    <thead>
+      <tr>
+        <th>Hari</th>
+        <th>Waktu</th>
+        <th>Pesan</th>
+        <th>Aksi</th>
+      </tr>
+    </thead>
+    <tbody>
+      <!-- Jadwal akan ditambahkan di sini -->
+    </tbody>
+  </table>
+
+  <!-- Suara Pengingat -->
+  <audio id="alertSound" src="/alarm-jadwal/audio/alertalarm.wav"></audio>
+
+
+  <script>
+    // Ambil elemen penting
+    const form = document.getElementById('scheduleForm');
+    const scheduleTable = document.getElementById('scheduleTable').querySelector('tbody');
+    const alertSound = document.getElementById('alertSound');
+
+    // Fungsi untuk memuat jadwal dari local storage
+    function loadSchedule() {
+      const schedule = JSON.parse(localStorage.getItem('schedule')) || [];
+      scheduleTable.innerHTML = '';
+      schedule.forEach((item, index) => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${item.day}</td>
+          <td>${item.time}</td>
+          <td>${item.message}</td>
+          <td><button onclick="deleteSchedule(${index})">Hapus</button></td>
+        `;
+        scheduleTable.appendChild(row);
+      });
+    }
+
+    // Fungsi untuk menyimpan jadwal ke local storage
+    function saveSchedule(schedule) {
+      localStorage.setItem('schedule', JSON.stringify(schedule));
+    }
+
+    // Fungsi untuk menambahkan jadwal baru
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const day = document.getElementById('day').value;
+      const time = document.getElementById('time').value;
+      const message = document.getElementById('message').value;
+
+      const schedule = JSON.parse(localStorage.getItem('schedule')) || [];
+      schedule.push({ day, time, message });
+      saveSchedule(schedule);
+      loadSchedule();
+      form.reset();
+    });
+
+    // Fungsi untuk menghapus jadwal
+    function deleteSchedule(index) {
+      const schedule = JSON.parse(localStorage.getItem('schedule')) || [];
+      schedule.splice(index, 1);
+      saveSchedule(schedule);
+      loadSchedule();
+    }
+
+    // Fungsi untuk memeriksa jadwal dan memberikan pengingat
+    function checkSchedule() {
+      const now = new Date();
+      const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      const currentDay = dayNames[now.getDay()];
+      const currentTime = now.getHours() + ':' + String(now.getMinutes()).padStart(2, '0');
+
+      const schedule = JSON.parse(localStorage.getItem('schedule')) || [];
+      schedule.forEach((item) => {
+        if (item.day === currentDay && item.time === currentTime) {
+          alert(`Pengingat: ${item.message}`);
+
+          alertSound.play(); // Mainkan suara
+        }
+      });
+    }
+
+    // Memuat jadwal saat halaman dimuat
+    loadSchedule();
+
+    // Jalankan pengecekan jadwal setiap menit
+    setInterval(checkSchedule, 60000);
+  </script>
+
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/alarm-jadwal/service-worker.js') // Sesuaikan dengan path yang benar
+      .then((registration) => {
+        console.log('Service Worker berhasil didaftarkan: ', registration);
+      })
+      .catch((error) => {
+        console.error('Service Worker gagal didaftarkan: ', error);
+      });
+  });
+}
+
+  </script>
+</body>
+</html>
